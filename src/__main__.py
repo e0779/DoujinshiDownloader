@@ -13,14 +13,22 @@ class DoujinshiDownloader:
         self.url = ''
 
     def clipboard_monitor(self):
+        approval_url_list = [
+            lambda: recent_paste.find('hanime1.me/comic/') != -1,
+            lambda: recent_paste.find('nhentai.net/g/') != -1
+        ]
         previous_paste = ''
         while True:
             recent_paste = pyperclip.paste()
-            if not previous_paste == recent_paste:
-                if recent_paste.find('hanime1.me/comic/') != -1 or recent_paste.find('nhentai.net/g/') != -1:
-                    logging.debug(f'Clipboard detected {recent_paste}')
-                    previous_paste = recent_paste
-                    self.download_queue.put(recent_paste)
+            if previous_paste == recent_paste:
+                continue
+            if not any(rule() for rule in approval_url_list):
+                continue
+
+            logging.debug(f'Clipboard detected {recent_paste}')
+            previous_paste = recent_paste
+            self.download_queue.put(recent_paste)
+
             time.sleep(0.1)
 
     def start_clipboard_monitor(self):
@@ -30,9 +38,11 @@ class DoujinshiDownloader:
 
     def get_download_queue(self):
         while True:
-            while not self.download_queue.empty():
-                self.url = self.download_queue.get()
-                self.start_doujinshi_download()
+            if self.download_queue.empty():
+                continue
+            self.url = self.download_queue.get()
+            print(self.url)
+            #self.start_doujinshi_download()
             time.sleep(0.1)
 
     def start_get_download_queue(self):
